@@ -15,10 +15,13 @@ class SpotifyService:
     AUTH_URL = "https://accounts.spotify.com/authorize"
     TOKEN_URL = "https://accounts.spotify.com/api/token"
     REDIRECT_URI = "http://127.0.0.1:8000/auth/callback"
+    BASE_URL = "https://api.spotify.com/v1"
 
     def __init__(self):
         self.client_id = SPOTIFY_CLIENT_ID
         self.access_token = None
+
+    # === Authentication ===
 
     def authenticate(self):
         code_verifier = self._generate_code_verifier()
@@ -116,10 +119,56 @@ class SpotifyService:
             },
         )
 
-        # Testing purposes only
-        if not response.ok:
-            print(response.text)
-            
         response.raise_for_status()
 
         self.access_token = response.json()["access_token"]
+
+
+    # === idk yet ===
+
+    def get_top_tracks(self, limit: int = 20) -> list:
+        response = requests.get(
+            f"{self.BASE_URL}/me/top/tracks",
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+            },
+            params={
+                "limit": limit,
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()["items"]
+
+    def get_top_artists(self, limit: int = 20) -> list:
+        response = requests.get(
+            f"{self.BASE_URL}/me/top/artists",
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+            },
+            params={
+                "limit": limit,
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()["items"]
+
+    def search_tracks(self, query: str, limit: int = 10) -> list:
+        response = requests.get(
+            f"{self.BASE_URL}/search",
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+            },
+            params={
+                "q": query,
+                "type": "track",
+                "limit": limit,
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()["tracks"]["items"]
