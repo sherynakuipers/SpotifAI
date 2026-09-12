@@ -26,6 +26,10 @@ def main():
         "\nWhat are you in the mood for?\n> "
     ).strip()
 
+    if not user_request:
+        print("Please enter a music request.")
+        return
+
     print("\nInterpreting your request...")
     music_intent = claude.ask(
         user_request
@@ -38,18 +42,19 @@ def main():
     tracks = {}
 
     for search_term in music_intent["search_terms"]:
-        results = spotify.search_tracks(search_term)
+        results = spotify.search_tracks(search_term, limit=10)
 
-        for track in results:
+        for position, track in enumerate(results):
             track_id = track["id"]
 
             if track_id not in tracks:
                 tracks[track_id] = {
                     "track": track,
-                    "search_matches": 0,
+                    "search_score": 0,
                 }
 
-            tracks[track_id]["search_matches"] += 1
+            search_points = max(1, len(results) - position,)
+            tracks[track_id]["search_score"] += search_points
 
     print(f"✓ Found {len(tracks)} unique tracks.")
 
@@ -74,7 +79,7 @@ def main():
             for artist in track["artists"]
         )
 
-        print(f"- {track['name']} — {artists} ")
+        print(f"- {track['name']} — {artists}")
 
 
 if __name__ == "__main__":
