@@ -5,6 +5,9 @@ from config import ANTHROPIC_API_KEY
 
 
 class ClaudeService:
+    """
+    Claude API wrapper: interacts with the Claude API to interpret user requests and extract music characteristics.
+    """
 
     def __init__(self):
         self.client = anthropic.Anthropic(

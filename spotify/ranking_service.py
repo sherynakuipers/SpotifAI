@@ -1,4 +1,7 @@
 class RankingService:
+    """
+    Ranks tracks based on the user's music taste and the artists they like.
+    """
 
     def rank_tracks(self, tracks: dict, top_tracks: list, top_artists: list) -> list:
         # Track IDs the user already listens to

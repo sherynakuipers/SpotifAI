@@ -11,6 +11,9 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from config import SPOTIFY_CLIENT_ID
 
 class SpotifyService:
+    """
+    Spotify API wrapper: authenticates with the user's Spotify account and provides access to the Spotify API.
+    """
 
     AUTH_URL = "https://accounts.spotify.com/authorize"
     TOKEN_URL = "https://accounts.spotify.com/api/token"
