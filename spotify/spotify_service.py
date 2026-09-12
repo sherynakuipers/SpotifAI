@@ -124,7 +124,7 @@ class SpotifyService:
         self.access_token = response.json()["access_token"]
 
 
-    # === idk yet ===
+    # === API calls ===
 
     def get_top_tracks(self, limit: int = 20) -> list:
         response = requests.get(
