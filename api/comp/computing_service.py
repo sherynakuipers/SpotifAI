@@ -1,6 +1,6 @@
-from ai.claude_service import ClaudeService
-from spotify.spotify_service import SpotifyService
-from ranking_service import RankingService
+from api.ai.claude_service import ClaudeService
+from api.spotify.spotify_service import SpotifyService
+from .ranking_service import RankingService
 
 
 class ComputingService:
