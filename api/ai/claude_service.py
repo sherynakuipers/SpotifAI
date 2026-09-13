@@ -1,5 +1,6 @@
 import anthropic
 import json
+import re
 
 from api.config import ANTHROPIC_API_KEY
 
@@ -72,6 +73,18 @@ class ClaudeService:
                 ],
             )
 
-            return json.loads(response.content[0].text)
+            raw_response = response.content[0].text.strip()
+            cleaned_response = self._remove_markdown(raw_response)
+
+            return json.loads(cleaned_response)
         except Exception as e:
-            raise "Claude service error" + str(e)
+            raise RuntimeError("Claude service error: " + str(e))
+
+    def _remove_markdown(self, text: str) -> str:
+        # Remove markdown JSON formatting from the response.
+        if text.startswith("```"):
+            text = text.replace("```json", "", 1)
+            text = text.replace("```", "", 1)
+            text = text.strip()
+
+        return text

@@ -19,8 +19,6 @@ class ComputingService:
         self.ranking = ranking
 
     def get_recommendations(self, user_request: str):
-        self.spotify.authenticate()
-
         top_tracks = self.spotify.get_top_tracks()
         top_artists = self.spotify.get_top_artists()
 

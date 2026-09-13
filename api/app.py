@@ -12,9 +12,8 @@ from .comp.computing_service import ComputingService, RankingService
 
 
 app = FastAPI(
-    title="TuneAI API",
-    description="AI-powered music discovery API",
-    version="0.1.0",
+    title="TuneAI",
+    description="AI-powered music discovery",
 )
 
 spotify = SpotifyService()
@@ -58,16 +57,22 @@ def login():
 
 @app.get("/auth/callback")
 def callback(
-    login_request: LoginRequest,
+    code: str,
+    state: str,
 ):
     """
     Endpoint to handle the callback from the Spotify authorization flow.
     """
-
-    spotify.handle_callback(
-        code=login_request.code,
-        state=login_request.state,
-    )
+    try:
+        spotify.handle_callback(
+            authorization_code=code,
+            state=state,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
 
     return {
         "message": "Successfully authenticated with Spotify!"
@@ -83,15 +88,19 @@ def recommendations(
     if not spotify.is_authenticated():
         raise HTTPException(
             status_code=401,
-            detail="Spotify authentication required."
+            detail="Spotify authentication required. Open /auth/login first."
         )
-    
-    computing_service = ComputingService()
 
-    results = computing_service.get_recommendations(
-        request.request
-    )
+    try:
+        results = computing_service.get_recommendations(
+            request.request
+        )
 
-    return RecommendationResponse(
-        recommendations=results
-    )
+        return RecommendationResponse(
+            recommendations=results
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=401,
+            detail=str(e),
+        )
