@@ -62,6 +62,10 @@ def callback(
 ):
     """
     Endpoint to handle the callback from the Spotify authorization flow.
+    
+    YOU DON'T NEED TO DO ANYTHING WITH THIS ENDPOINT: 
+    after authorization, the Spotify API will redirect the user back to the application
+    along with the authorization code and state.
     """
     try:
         spotify.handle_callback(
