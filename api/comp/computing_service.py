@@ -8,10 +8,15 @@ class ComputingService:
     Computing service: interacts with the Claude and Spotify APIs to interpret user requests and rank tracks.
     """
 
-    def __init__(self):
-        self.spotify = SpotifyService()
-        self.claude = ClaudeService()
-        self.ranking = RankingService()
+    def __init__(
+        self,
+        spotify: SpotifyService,
+        claude: ClaudeService,
+        ranking: RankingService,
+    ):
+        self.spotify = spotify
+        self.claude = claude
+        self.ranking = ranking
 
     def get_recommendations(self, user_request: str):
         self.spotify.authenticate()
