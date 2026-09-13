@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from config import SPOTIFY_CLIENT_ID
+from api.config import SPOTIFY_CLIENT_ID
 
 class SpotifyService:
     """

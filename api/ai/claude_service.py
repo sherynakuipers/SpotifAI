@@ -1,7 +1,7 @@
 import anthropic
 import json
 
-from config import ANTHROPIC_API_KEY
+from api.config import ANTHROPIC_API_KEY
 
 
 class ClaudeService:
