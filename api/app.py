@@ -3,8 +3,8 @@ from fastapi import FastAPI, Query, HTTPException
 from .models import (
     RecommendationRequest,
     RecommendationResponse,
-    LoginRequest,
     LoginResponse,
+    Track,
 )
 from .spotify.spotify_service import SpotifyService
 from .ai.claude_service import ClaudeService
@@ -92,9 +92,21 @@ def recommendations(
         )
 
     try:
-        results = computing_service.get_recommendations(
+        recommendations = computing_service.get_recommendations(
             request.request
         )
+
+        results = [
+            Track(
+                track=item["track"]["name"],
+                artists=", ".join(
+                    artist["name"]
+                    for artist in item["track"]["artists"]
+                ),
+                url=item["track"]["external_urls"]["spotify"],
+            ) 
+            for item in recommendations
+        ]
 
         return RecommendationResponse(
             recommendations=results

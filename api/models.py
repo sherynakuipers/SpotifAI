@@ -14,4 +14,9 @@ class RecommendationRequest(BaseModel):
 
 
 class RecommendationResponse(BaseModel):
-    recommendations: list
+    recommendations: list[Track]
+
+class Track(BaseModel):
+    track: str
+    artists: str
+    url: str
