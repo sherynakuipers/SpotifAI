@@ -6,41 +6,53 @@ For example, a user can enter:
 
 > "I want something slow but energetic, maybe R&B for a late-night drive."
 
-TuneAI interprets the request, searches Spotify for relevant tracks, and ranks the results based on search relevance and the user's existing Spotify listening data.
+TuneAI interprets the request, searches Spotify for relevant tracks and ranks the results based on search relevance and the user's existing Spotify listening data.
 
-## Current version
+## Current Version
 
-This version contains the **CLI MVP** of TuneAI.
+This version contains the **FastAPI backend** of TuneAI.
 
-The goal of this version was to validate the core recommendation flow before introducing a web API or frontend.
+The original CLI MVP was used to validate the core recommendation flow. The FastAPI version exposes the same functionality through an API and prepares the application for a React frontend.
 
 ### Current flow
 
 ```text
-User request
-     ↓
+User
+  ↓
+Spotify authentication
+  ↓
+Natural-language request
+  ↓
 Claude
-     ↓
+  ↓
 Structured music intent
-     ↓
+  ↓
 Spotify search
-     ↓
+  ↓
 Candidate tracks
-     ↓
+  ↓
 Local ranking
-     ↓
+  ↓
 15 recommendations
 ```
 
 ---
 
-## What I've Built
+# What I've Built
 
-### 1. Spotify authentication
+## 1. Spotify authentication
 
 TuneAI authenticates the user with Spotify using the **Authorization Code with PKCE** flow.
 
-The CLI opens Spotify's authorization page in the browser. After authorization, the user pastes the callback URL back into the application.
+The FastAPI backend provides an authentication flow where:
+
+1. `/auth/login` generates a Spotify authorization URL.
+2. The user authorizes TuneAI through Spotify.
+3. Spotify automatically redirects to `/auth/callback`.
+4. FastAPI receives the authorization code and state.
+5. TuneAI exchanges the code for Spotify access and refresh tokens.
+6. The tokens are kept in memory and reused for recommendation requests.
+7. Access tokens are automatically refreshed when they expire.
 
 The application requests the following scopes:
 
@@ -49,7 +61,9 @@ The application requests the following scopes:
 
 The `user-top-read` scope allows TuneAI to access the user's top tracks and artists for lightweight personalization.
 
-### 2. Natural-language music interpretation
+The current implementation is designed for a **single-user local application**. Authentication state is stored in memory and is lost when the FastAPI application restarts.
+
+## 2. Natural-language music interpretation
 
 Users can describe what they want using normal language rather than selecting predefined genres or moods.
 
@@ -94,7 +108,7 @@ For example:
 
 Claude is responsible for **understanding the request**, not for selecting the final Spotify tracks.
 
-### 3. Spotify candidate search
+## 3. Spotify candidate search
 
 The generated search terms are used to search Spotify for candidate tracks.
 
@@ -102,7 +116,7 @@ TuneAI collects the results from each search and removes duplicate Spotify track
 
 The result is a candidate pool that can then be ranked locally.
 
-### 4. Local recommendation ranking
+## 4. Local recommendation ranking
 
 TuneAI uses a deterministic ranking system rather than asking Claude to rank Spotify tracks.
 
@@ -118,7 +132,7 @@ Tracks the user already knows receive a penalty because the goal is **music disc
 
 The final output is limited to **15 recommendations**.
 
-### 5. Recommendation diversity
+## 5. Recommendation diversity
 
 The ranking layer also prevents the recommendation list from becoming repetitive.
 
@@ -129,17 +143,33 @@ Currently:
 
 This keeps the final list more varied.
 
+## 6. Simple API response
+
+The FastAPI backend exposes a simplified recommendation response rather than returning the complete Spotify track objects.
+
+Each recommendation contains:
+
+```json
+{
+  "track": "Clouded",
+  "artists": "Brent Faiyaz",
+  "url": "https://open.spotify.com/track/..."
+}
+```
+
+The Spotify URL allows the user to open the recommended track directly in Spotify.
+
 ---
 
 # Design Choices
 
 ## Python first
 
-The first version is intentionally implemented as a simple Python CLI.
+The first version was intentionally implemented as a simple Python CLI.
 
-The goal of this branch is to validate the core recommendation pipeline before adding additional infrastructure.
+The CLI was used to validate the core recommendation pipeline before adding additional infrastructure.
 
-A web API and frontend can be added later without changing the core services significantly.
+The FastAPI backend now exposes the existing services through an API without requiring the recommendation logic to be rewritten.
 
 ## Claude for intent, Spotify for music
 
@@ -201,44 +231,76 @@ This is intentional for the MVP and keeps the system understandable within the s
 # Project Structure
 
 ```text
-tuneai/
-├── main.py
-├── config.py
-├── .env.local
-├── .env.example
+SpotifAI/
+├── .gitignore
+├── README-LONG-VERSION.md
+├── README.md
 ├── requirements.txt
 │
-├── ai/
-│   ├── __init__.py
-│   └── claude_service.py
-│
-└── spotify/
+└── api/
     ├── __init__.py
-    ├── ranking_service.py
-│   └── spotify_service.py
+    │
+    ├── ai/
+    │   ├── __init__.py
+    │   └── claude_service.py
+    │
+    ├── spotify/
+    │   ├── __init__.py
+    │   └── spotify_service.py
+    │
+    ├── comp/
+    │   ├── __init__.py
+    │   ├── computing_service.py
+    │   └── ranking_service.py
+    │
+    ├── config.py
+    ├── models.py
+    └── app.py
 ```
 
 ### Responsibilities
 
-**`main.py`**
+**`api/app.py`**
 
-Coordinates the complete CLI workflow.
+Exposes the TuneAI functionality through FastAPI endpoints and handles Spotify authentication callbacks.
 
-**`ai/claude_service.py`**
+**`api/models.py`**
+
+Contains the Pydantic request and response models used by the API.
+
+**`api/ai/claude_service.py`**
 
 Handles communication with the Anthropic API and converts natural-language requests into structured music intent.
 
-**`spotify/spotify_service.py`**
+**`api/spotify/spotify_service.py`**
 
-Handles Spotify authentication and Spotify Web API requests.
+Handles Spotify PKCE authentication, token refresh and Spotify Web API requests.
 
-**`spotify/ranking_service.py`**
+**`api/comp/computing_service.py`**
+
+Coordinates the recommendation workflow by connecting Claude, Spotify and the ranking service.
+
+**`api/comp/ranking_service.py`**
 
 Contains the local recommendation ranking and diversity logic.
 
-**`config.py`**
+**`api/config.py`**
 
 Loads environment variables and application configuration.
+
+---
+
+# API Endpoints
+
+| Method | Endpoint           | Purpose                        |
+| ------ | ------------------ | ------------------------------ |
+| `GET`  | `/`                | API information                |
+| `GET`  | `/health`          | Health check                   |
+| `GET`  | `/auth/login`      | Start Spotify authentication   |
+| `GET`  | `/auth/callback`   | Handle Spotify OAuth callback  |
+| `POST` | `/recommendations` | Generate music recommendations |
+
+FastAPI also provides interactive API documentation (Swagger) at `/docs`.
 
 ---
 
@@ -283,9 +345,17 @@ http://127.0.0.1:8000/auth/callback
 
 The redirect URI configured in Spotify must exactly match the value used by TuneAI.
 
-The current CLI implementation uses PKCE and a manual callback step rather than running a local callback server.
+TuneAI uses the **Authorization Code with PKCE** flow.
 
-After Spotify authorization, the browser will redirect to the callback URL. Copy the complete callback URL and paste it into the CLI when prompted.
+To authenticate:
+
+1. Open `/auth/login`.
+2. Open the returned Spotify authorization URL.
+3. Authorize the application.
+4. Spotify automatically redirects to `/auth/callback`.
+5. TuneAI stores the resulting access and refresh tokens in memory.
+
+No manual callback URL copying is required.
 
 ---
 
@@ -295,7 +365,6 @@ Clone the repository and enter the project directory:
 
 ```bash
 git clone <HTTPS or SSH repository URL>
-cd tuneai
 ```
 
 Create a virtual environment:
@@ -328,50 +397,65 @@ pip install -r requirements.txt
 
 # Running TuneAI
 
-Run:
+Start the FastAPI server:
 
 ```bash
-python main.py
+uvicorn api.app:app --reload
 ```
 
-The application will:
-
-1. Authenticate with Spotify.
-2. Load the user's top tracks and artists.
-3. Ask what they are in the mood for.
-4. Send the request to Claude for interpretation.
-5. Search Spotify using the generated search terms.
-6. Rank the candidate tracks.
-7. Display 15 recommendations.
-
-Example:
+The API will be available at:
 
 ```text
-🎵 TuneAI
+http://127.0.0.1:8000
+```
 
-Connecting to Spotify...
-✓ Successfully authenticated with Spotify!
+Interactive API documentation:
 
-Loading your music taste...
-✓ Done!
+```text
+http://127.0.0.1:8000/docs
+```
 
-What are you in the mood for?
-> Slow but energetic RnB.
+### Authentication
 
-Interpreting your request...
-✓ Done!
+Open:
 
-Searching Spotify...
-✓ Found 29 unique tracks.
+```text
+http://127.0.0.1:8000/auth/login
+```
 
-Ranking recommendations...
-✓ Done!
+Authorize TuneAI with Spotify.
 
-🎵 Your recommendations:
+After authentication, recommendations can be requested through:
 
-- Slow Jamz — Twista, Kanye West, Jamie Foxx
-- Clouded — Brent Faiyaz
-- ...
+```text
+POST /recommendations
+```
+
+Example request:
+
+```json
+{
+  "request": "Slow but energetic R&B for a late-night drive."
+}
+```
+
+Example response:
+
+```json
+{
+  "recommendations": [
+    {
+      "track": "Slow Jamz",
+      "artists": "Twista, Kanye West, Jamie Foxx",
+      "url": "https://open.spotify.com/track/..."
+    },
+    {
+      "track": "Clouded",
+      "artists": "Brent Faiyaz",
+      "url": "https://open.spotify.com/track/..."
+    }
+  ]
+}
 ```
 
 ---
@@ -384,11 +468,11 @@ Update the individual branch times as development progresses and keep the total 
 
 ```text
 Time spent CLI MVP: 3:11:36,44
-Time spent FastAPI: ...
+Time spent FastAPI: 2:24:22,73
 Time spent React frontend: ...
 Time spent future branch: ...
 
-Time spent total: 3:11:36,44
+Time spent total: 5:35:59,17
 ```
 
 ---
@@ -407,16 +491,19 @@ FastAPI backend
 React frontend
 ```
 
-The next stage will expose the existing TuneAI functionality through a FastAPI backend.
+The next stage will add a React frontend that consumes the existing FastAPI backend.
 
-The React frontend can then consume the API without requiring the recommendation logic to be rewritten.
+The recommendation logic and core services can remain unchanged.
 
 ---
 
 # Technologies
 
 * **Python** — core application
+* **FastAPI** — backend API
 * **Anthropic Claude** — natural-language music intent interpretation
-* **Spotify Web API** — authentication, user taste data, and music search
+* **Spotify Web API** — authentication, user taste data and music search
 * **Requests** — HTTP communication
+* **Pydantic** — API request and response validation
 * **python-dotenv** — environment configuration
+* **Uvicorn** — FastAPI development server
